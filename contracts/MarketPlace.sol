@@ -21,6 +21,7 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
     struct Asset {
         uint256 id;
         address owner;
+        address creator;
         address tokenAddress;
         uint256 tokenId;
         uint256 price;
@@ -74,6 +75,7 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
             id,
             creator,
             msg.sender,
+            tokenAddress,
             tokenId,
             price,
             false
