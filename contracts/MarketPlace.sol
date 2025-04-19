@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/interfaces/IERC721Enumerable.sol";
 
 import "./MusiCat.sol";
 
@@ -73,8 +74,8 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
 
         assets[_assetId] = Asset(
             id,
-            creator,
             msg.sender,
+            creator,
             tokenAddress,
             tokenId,
             price,
@@ -87,7 +88,7 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
             tokenId
         );
 
-        emit AssetCreated(_assetId, creator, msg.sender, tokenId, price, true);
+        emit AssetCreated(_assetId, msg.sender, creator, tokenId, price, true);
         _counter++;
         _assetId++;
     }
@@ -170,15 +171,15 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
         emit AssetForSale(id, msg.sender, isForSale);
     }
 
-    function getAsset(uint256 id) external view returns (Asset memory) {
+    function getAsset(uint256 id) public view returns (Asset memory) {
         return assets[id];
     }
 
-    function getAssetCount() external view returns (uint256) {
+    function getAssetCount() public view returns (uint256) {
         return _counter;
     }
 
-    function getAssetPrice(uint256 id) external view returns (uint256) {
+    function getAssetPrice(uint256 id) public view returns (uint256) {
         return assets[id].price;
     }
 

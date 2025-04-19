@@ -35,13 +35,12 @@ contract MusiCat is ERC721, ERC721URIStorage {
     ) public returns (uint256) {
         uint256 tokenId = _nextTokenId;
         _mint(msg.sender, tokenId);
-        _tokenURIs[tokenId] = uri;
+        _setTokenURI(tokenId, uri);
         _owners[tokenId] = msg.sender;
         previewURIs[tokenId] = preview;
-
+        _nextTokenId++;
         setApprovalForAll(marketPlaceAddress, true);
         emit AssetMinted(tokenId, uri, marketPlaceAddress);
-        _nextTokenId++;
         return tokenId;
     }
 
@@ -55,8 +54,8 @@ contract MusiCat is ERC721, ERC721URIStorage {
         return previewURIs[tokenId];
     }
 
-    function getAssetOwnedBySender() public view returns (uint256[] memory) {
-        uint256 ownedCount = balanceOf(msg.sender);
+    function getAssetOwnedBySender(address sender) public view returns (uint256[] memory) {
+        uint256 ownedCount = balanceOf(sender);
         if (ownedCount <= 0) {
             return new uint256[](0);
         }
@@ -66,7 +65,7 @@ contract MusiCat is ERC721, ERC721URIStorage {
             if (index >= ownedCount) {
                 break;
             }
-            if (ownerOf(i) == msg.sender) {
+            if (ownerOf(i) == sender) {
                 ownedAssets[index++] = i;
             }
         }
@@ -86,10 +85,10 @@ contract MusiCat is ERC721, ERC721URIStorage {
         return _owners[tokenId];
     }
 
-    function getTokenCreatedBySender() public view returns (uint256[] memory) {
+    function getTokenCreatedBySender(address sender) external view returns (uint256[] memory) {
         uint256 createdCount = 0;
         for (uint256 i = 0; i < _nextTokenId; i++) {
-            if (_owners[i] == msg.sender) {
+            if (_owners[i] == sender) {
                 createdCount++;
             }
         }
@@ -97,7 +96,7 @@ contract MusiCat is ERC721, ERC721URIStorage {
         uint256[] memory createdAssets = new uint256[](createdCount);
         uint256 index = 0;
         for (uint256 i = 0; i < _nextTokenId; i++) {
-            if (_owners[i] == msg.sender) {
+            if (_owners[i] == sender) {
                 createdAssets[index++] = i;
             }
         }
@@ -105,7 +104,7 @@ contract MusiCat is ERC721, ERC721URIStorage {
         return createdAssets;
     }
 
-    function burnAsset(uint256 tokenId) public {
+    function burnAsset(uint256 tokenId) external {
         require(_owners[tokenId] == msg.sender, "Not the owner of the token");
 
         delete _tokenURIs[tokenId];
