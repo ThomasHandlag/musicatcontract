@@ -119,4 +119,8 @@ contract MusiCat is ERC721, ERC721URIStorage {
     ) public view override(ERC721, ERC721URIStorage) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
+
+    function getBalanceOf(address owner) external view returns (uint256) {
+        return balanceOf(owner);
+    }
 }
