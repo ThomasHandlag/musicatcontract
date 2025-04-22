@@ -35,7 +35,7 @@ contract MusiCat is ERC721, ERC721URIStorage {
     ) public returns (uint256) {
         uint256 tokenId = _nextTokenId;
         _mint(msg.sender, tokenId);
-        _setTokenURI(tokenId, uri);
+        _tokenURIs[tokenId] = uri;
         _owners[tokenId] = msg.sender;
         previewURIs[tokenId] = preview;
         _nextTokenId++;

@@ -13,7 +13,7 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
         _feeAddress = payable(owner); // Set the deployer as the fee address
     }
 
-    uint256 private _assetId = 0;
+    uint256 private _assetId;
     uint256 public _feePercent = 5; // marketplace fee each asset sold
     address private _feeAddress;
 
@@ -33,13 +33,16 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
 
     function getAllAssets(
         address tokenAddress
-    ) external view returns (Asset[] memory) {
+    ) public view returns (Asset[] memory) {
         uint256 count = MusiCat(tokenAddress).getBalanceOf(address(this));
         Asset[] memory allAssets = new Asset[](count);
         uint256 index = 0;
-        for (uint256 i = 0; i < _assetId; i++) {
-            if (index >= count) break;
-            allAssets[i] = assets[i];
+        for (uint256 i = 1; i <= _assetId; i++) {
+            if (assets[i].id != 0) {
+                if (index < count) {
+                    allAssets[index++] = assets[i];
+                }
+            }
         }
         return allAssets;
     }
@@ -71,11 +74,11 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
         uint256 price
     ) public payable nonReentrant {
         require(price >= 0, "Price must be greater than or equal to 0");
-        uint256 id = _assetId;
+        uint256 id = ++_assetId;
 
         address creator = MusiCat(tokenAddress).getMinterById(tokenId);
 
-        assets[_assetId] = Asset(
+        assets[id] = Asset(
             id,
             msg.sender,
             creator,
@@ -90,9 +93,7 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
             address(this),
             tokenId
         );
-
         emit AssetCreated(_assetId, msg.sender, creator, tokenId, price, true);
-        _assetId++;
     }
 
     function buyAsset(uint256 id) external payable nonReentrant {
@@ -123,6 +124,8 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
             asset.tokenId,
             asset.price
         );
+
+        delete assets[id]; // Remove the asset from the marketplace
     }
 
     function updateAssetPrice(
