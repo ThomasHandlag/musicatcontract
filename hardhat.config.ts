@@ -7,7 +7,7 @@ const config: HardhatUserConfig = {
     geth: {
       url: "http://192.168.100.101:8545",
       chainId: 31337,
-    }
+    },
   }
 };
 
