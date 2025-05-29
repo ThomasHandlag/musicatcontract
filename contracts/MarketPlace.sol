@@ -4,23 +4,23 @@ pragma solidity ^0.8.22;
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/interfaces/IERC721Enumerable.sol";
 
 import "./MusiCat.sol";
 
 contract MarketPlace is ReentrancyGuard, IERC721Receiver {
-    constructor() {
-        _feeAddress = payable(msg.sender); // Set the deployer as the fee address
+    constructor(address owner) {
+        _feeAddress = payable(owner); // Set the deployer as the fee address
     }
 
-    uint256 private _assetId = 0;
+    uint256 private _assetId;
     uint256 public _feePercent = 5; // marketplace fee each asset sold
     address private _feeAddress;
-
-    uint256 private _counter = 0;
 
     struct Asset {
         uint256 id;
         address owner;
+        address creator;
         address tokenAddress;
         uint256 tokenId;
         uint256 price;
@@ -31,10 +31,18 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
     // This mapping will store all the Assets listed for sale
     mapping(uint256 => Asset) private assets;
 
-    function getAllAssets() external view returns (Asset[] memory) {
-        Asset[] memory allAssets = new Asset[](_counter);
-        for (uint256 i = 0; i < _assetId; i++) {
-            allAssets[i] = assets[i];
+    function getAllAssets(
+        address tokenAddress
+    ) public view returns (Asset[] memory) {
+        uint256 count = MusiCat(tokenAddress).getBalanceOf(address(this));
+        Asset[] memory allAssets = new Asset[](count);
+        uint256 index = 0;
+        for (uint256 i = 1; i <= _assetId; i++) {
+            if (assets[i].id != 0) {
+                if (index < count) {
+                    allAssets[index++] = assets[i];
+                }
+            }
         }
         return allAssets;
     }
@@ -66,14 +74,15 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
         uint256 price
     ) public payable nonReentrant {
         require(price >= 0, "Price must be greater than or equal to 0");
-        uint256 id = _assetId;
+        uint256 id = ++_assetId;
 
         address creator = MusiCat(tokenAddress).getMinterById(tokenId);
 
-        assets[_assetId] = Asset(
+        assets[id] = Asset(
             id,
-            creator,
             msg.sender,
+            creator,
+            tokenAddress,
             tokenId,
             price,
             false
@@ -84,10 +93,7 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
             address(this),
             tokenId
         );
-
-        emit AssetCreated(_assetId, creator, msg.sender, tokenId, price, true);
-        _counter++;
-        _assetId++;
+        emit AssetCreated(_assetId, msg.sender, creator, tokenId, price, true);
     }
 
     function buyAsset(uint256 id) external payable nonReentrant {
@@ -105,14 +111,12 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
 
         // Transfer the token to the buyer
         IERC721(asset.tokenAddress).safeTransferFrom(
-            asset.owner,
+            address(this),
             msg.sender,
             asset.tokenId
         );
         asset.isForSale = false;
-        if (_counter > 0) {
-            _counter--;
-        }
+
         emit AssetSold(
             id,
             msg.sender,
@@ -120,6 +124,8 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
             asset.tokenId,
             asset.price
         );
+
+        delete assets[id]; // Remove the asset from the marketplace
     }
 
     function updateAssetPrice(
@@ -152,9 +158,6 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
             msg.sender,
             asset.tokenId
         );
-        if (_counter > 0) {
-            _counter--;
-        }
         emit AssetRemoved(id, msg.sender);
     }
 
@@ -168,15 +171,11 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
         emit AssetForSale(id, msg.sender, isForSale);
     }
 
-    function getAsset(uint256 id) external view returns (Asset memory) {
+    function getAsset(uint256 id) public view returns (Asset memory) {
         return assets[id];
     }
 
-    function getAssetCount() external view returns (uint256) {
-        return _counter;
-    }
-
-    function getAssetPrice(uint256 id) external view returns (uint256) {
+    function getAssetPrice(uint256 id) public view returns (uint256) {
         return assets[id].price;
     }
 
