@@ -75,7 +75,6 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
     ) public payable nonReentrant {
         require(price >= 0, "Price must be greater than or equal to 0");
         uint256 id = ++_assetId;
-
         address creator = MusiCat(tokenAddress).getMinterById(tokenId);
 
         assets[id] = Asset(
