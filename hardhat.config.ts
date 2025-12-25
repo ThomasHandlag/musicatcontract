@@ -1,18 +1,53 @@
-import type { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox-viem";
+import { configVariable, defineConfig } from "hardhat/config";
+import HardhatIgnitionEthersPlugin from "@nomicfoundation/hardhat-ignition-ethers";
+import dotenv from "dotenv";
+dotenv.config();
 
-const config: HardhatUserConfig = {
-  solidity: "0.8.28",
+export default defineConfig({
+  plugins: [HardhatIgnitionEthersPlugin],
+  solidity: {
+    profiles: {
+      default: {
+        version: "0.8.28",
+      },
+      production: {
+        version: "0.8.28",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+    },
+  },
+
   networks: {
     geth: {
-      url: "http://10.50.158.131:8545",
+      url: "https://eth.bustify.dev",
+      type: "http",
       chainId: 31337,
+      accounts: [configVariable("ADMIN_KEY")],
     },
-    geth1: {
-      url: "http://192.168.100.211:8545",
+    local: {
+      url: "http://localhost:8545",
+      type: "http",
       chainId: 31337,
-    }
-  }
-};
-
-export default config;
+      accounts: [configVariable("ADMIN_KEY")],
+    },
+    hardhatMainnet: {
+      type: "edr-simulated",
+      chainType: "l1",
+    },
+    hardhatOp: {
+      type: "edr-simulated",
+      chainType: "op",
+    },
+    sepolia: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("SEPOLIA_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+  },
+});

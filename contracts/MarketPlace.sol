@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.22;
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -30,21 +30,50 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
     // Mapping from Asset ID to Asset struct
     // This mapping will store all the Assets listed for sale
     mapping(uint256 => Asset) private assets;
+    string[] private assetKeys;
+    mapping(string => bool) private assetExists;
+
+    error InvalidPrice(string reason);
 
     function getAllAssets(
         address tokenAddress
-    ) public view returns (Asset[] memory) {
-        uint256 count = MusiCat(tokenAddress).getBalanceOf(address(this));
-        Asset[] memory allAssets = new Asset[](count);
-        uint256 index = 0;
-        for (uint256 i = 1; i <= _assetId; i++) {
-            if (assets[i].id != 0) {
-                if (index < count) {
-                    allAssets[index++] = assets[i];
-                }
+    )
+        public
+        view
+        returns (
+            uint256[] memory ids,
+            address[] memory owners,
+            uint256[] memory tokenIds,
+            uint256[] memory prices,
+            bool[] memory isForSales
+        )
+    {
+        MusiCat tokenContract = MusiCat(tokenAddress);
+        uint256 balance = tokenContract.balanceOf(address(this));
+        uint256 count = tokenContract.count();
+
+        uint256[] memory allIds = new uint256[](balance);
+        address[] memory allOwners = new address[](balance);
+        uint256[] memory allTokenIds = new uint256[](balance);
+        uint256[] memory allPrices = new uint256[](balance);
+        bool[] memory allIsForSales = new bool[](balance);
+
+        for (uint256 i = 0; i < count; i++) {
+            if (tokenContract.ownerOf(i) == address(this)) {
+                Asset storage asset = assets[i];
+                allIds[i] = asset.id;
+                allOwners[i] = asset.owner;
+                allTokenIds[i] = asset.tokenId;
+                allPrices[i] = asset.price;
+                allIsForSales[i] = asset.isForSale;
             }
         }
-        return allAssets;
+
+        console.log("Total assets in marketplace:", balance);
+        console.log("Total assets counted:", count);
+        console.log("All IDs length:", allIds.length);
+
+        return (allIds, allOwners, allTokenIds, allPrices, allIsForSales);
     }
 
     event AssetCreated(
@@ -73,9 +102,11 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
         uint256 tokenId,
         uint256 price
     ) public payable nonReentrant {
-        require(price >= 0, "Price must be greater than or equal to 0");
+        require(price >= 0, "Price must be non-negative");
+        console.log("Creating asset with price:", price);
+
         uint256 id = ++_assetId;
-        address creator = MusiCat(tokenAddress).getMinterById(tokenId);
+        address creator = MusiCat(tokenAddress).creatorOf(tokenId);
 
         assets[id] = Asset(
             id,
@@ -161,13 +192,36 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
     }
 
     function setForSale(uint256 id, bool isForSale) external nonReentrant {
-        Asset storage asset = assets[id];
         require(
-            asset.owner == msg.sender,
+            _feeAddress == msg.sender,
             "Only the owner can set the Asset for sale"
         );
+        Asset storage asset = assets[id];
         asset.isForSale = isForSale;
         emit AssetForSale(id, msg.sender, isForSale);
+    }
+
+    function getRequestedAsset() public view returns (Asset[] memory) {
+        uint256 totalAssets = _assetId;
+        uint256 count = 0;
+
+        for (uint256 i = 1; i <= totalAssets; i++) {
+            if (!assets[i].isForSale) {
+                count++;
+            }
+        }
+
+        Asset[] memory requestedAssets = new Asset[](count);
+        uint256 index = 0;
+
+        for (uint256 i = 1; i <= totalAssets; i++) {
+            if (!assets[i].isForSale) {
+                requestedAssets[index] = assets[i];
+                index++;
+            }
+        }
+
+        return requestedAssets;
     }
 
     function getAsset(uint256 id) public view returns (Asset memory) {
