@@ -20,7 +20,7 @@ contract MusiCat is ERC721URIStorage {
     constructor() ERC721("MusiCat", "MSC") {}
 
     function _baseURI() internal pure override returns (string memory) {
-        return "ipfs://";
+        return "https://ipfs.io/ipfs/";
     }
 
     // Function to set the token URI for asset
@@ -93,7 +93,6 @@ contract MusiCat is ERC721URIStorage {
     }
 
     function burnAsset(uint256 tokenId) external {
-        require(ownerOf(tokenId) == msg.sender, "Not the owner of the token");
         delete _creators[tokenId];
         _burn(tokenId);
     }

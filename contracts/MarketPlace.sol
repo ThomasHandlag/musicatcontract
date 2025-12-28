@@ -27,13 +27,7 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
         bool isForSale;
     }
 
-    // Mapping from Asset ID to Asset struct
-    // This mapping will store all the Assets listed for sale
     mapping(uint256 => Asset) private assets;
-    string[] private assetKeys;
-    mapping(string => bool) private assetExists;
-
-    error InvalidPrice(string reason);
 
     function getAllAssets(
         address tokenAddress
@@ -58,14 +52,16 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
         uint256[] memory allPrices = new uint256[](balance);
         bool[] memory allIsForSales = new bool[](balance);
 
+        uint256 index = 0;
         for (uint256 i = 0; i < count; i++) {
             if (tokenContract.ownerOf(i) == address(this)) {
-                Asset storage asset = assets[i];
-                allIds[i] = asset.id;
-                allOwners[i] = asset.owner;
-                allTokenIds[i] = asset.tokenId;
-                allPrices[i] = asset.price;
-                allIsForSales[i] = asset.isForSale;
+                Asset memory asset = assets[i];
+                allIds[index] = asset.id;
+                allOwners[index] = asset.owner;
+                allTokenIds[index] = asset.tokenId;
+                allPrices[index] = asset.price;
+                allIsForSales[index] = asset.isForSale;
+                index++;
             }
         }
 
@@ -105,13 +101,12 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
         require(price >= 0, "Price must be non-negative");
         console.log("Creating asset with price:", price);
 
-        uint256 id = ++_assetId;
-        address creator = MusiCat(tokenAddress).creatorOf(tokenId);
+        uint256 id = _assetId++;
 
         assets[id] = Asset(
             id,
             msg.sender,
-            creator,
+            msg.sender,
             tokenAddress,
             tokenId,
             price,
@@ -123,7 +118,7 @@ contract MarketPlace is ReentrancyGuard, IERC721Receiver {
             address(this),
             tokenId
         );
-        emit AssetCreated(_assetId, msg.sender, creator, tokenId, price, true);
+        emit AssetCreated(_assetId, msg.sender, msg.sender, tokenId, price, true);
     }
 
     function buyAsset(uint256 id) external payable nonReentrant {
